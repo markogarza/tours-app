@@ -30,8 +30,28 @@ const Tour = require('../models/tourModel');
 // RouteHandlers
 exports.getAllTours = async (req, res) => {
   try {
-    const allTours = await Tour.find();
+    console.log(req.query);
+    // Build Query
 
+    // Filtering
+    const queryObj = { ...req.query };
+    const excludeFields = ['page', 'sort', 'limit', 'fields'];
+    excludeFields.forEach((el) => delete queryObj[el]);
+
+    // Advance Filtering
+    let queryOp = JSON.stringify(queryObj);
+    queryOp = queryOp.replace(/\bgte|gt|lte|lt\b/g, (el) => `$${el}`);
+    console.log(JSON.parse(queryOp));
+
+    // { difficulty: 'easy', duration: { gte: '5' } }
+    // { difficulty: 'easy', duration: { $gte: '5' } }
+
+    const query = Tour.find(JSON.parse(queryOp));
+
+    // Execute Query
+    const allTours = await query;
+
+    // Send Reponse
     res.status(200).json({
       status: 'success',
       results: allTours.length,
