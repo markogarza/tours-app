@@ -27,6 +27,13 @@ const Tour = require('../models/tourModel');
 //   next();
 // };
 
+exports.aliasTopFiveCheap = (req, res, next) => {
+  req.query.limit = '5';
+  req.query.sort = '-ratingsAverage,price';
+  req.query.fields = 'name,price,ratingsAverage,duration,difficulty';
+  next();
+};
+
 // RouteHandlers
 exports.getAllTours = async (req, res) => {
   try {
@@ -52,15 +59,29 @@ exports.getAllTours = async (req, res) => {
       const sortBy = req.query.sort.split(',').join(' ');
       query = query.sort(sortBy);
     } else {
-      query = query.sort('-createdAt');
+      // console.log('default sorting -createdAt');
+      // query = query.sort('-createdAt');
     }
 
-    // 3) Field Limiting
+    // 3) Field Select
     if (req.query.fields) {
       const fields = req.query.fields.split(',').join(' ');
       query = query.select(fields);
     } else {
+      console.log('default select field: -__v');
       query = query.select('-__v');
+    }
+
+    // 4) Pagination, page & limit - NOT WORKING AS EXPECTED!!!
+    const page = req.query.page * 1 || 1;
+    const limit = req.query.limit * 1 || 100;
+    const skip = (page - 1) * limit;
+    console.log(page, limit, skip);
+    query = query.limit(limit).skip(skip);
+
+    if (req.query.page) {
+      const numDoc = await Tour.countDocuments();
+      if (skip >= numDoc) throw new Error('This page  does not exist');
     }
 
     // Execute Query
